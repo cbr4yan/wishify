@@ -1,16 +1,12 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { reserveGift, unreserveGift } from "@/lib/actions";
 import type { Gift } from "@/lib/supabase";
 import { Check, ExternalLink, Gift as GiftIcon, Undo2 } from "lucide-react";
 import Image from "next/image";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 type Props = {
@@ -21,7 +17,10 @@ type Props = {
 export function GiftList({ gifts, userPin }: Props) {
   const [localGifts, setLocalGifts] = useState(gifts);
   const [isPending, startTransition] = useTransition();
-  const [selectedImage, setSelectedImage] = useState<{ url: string; name: string } | null>(null);
+  const [selectedImage, setSelectedImage] = useState<{
+    url: string;
+    name: string;
+  } | null>(null);
 
   useEffect(() => {
     setLocalGifts(gifts);
@@ -97,14 +96,21 @@ export function GiftList({ gifts, userPin }: Props) {
                 {gift.image_url && (
                   <button
                     type="button"
-                    onClick={() => setSelectedImage({ url: gift.image_url!, name: gift.name })}
+                    onClick={() =>
+                      setSelectedImage({
+                        url: gift.image_url!,
+                        name: gift.name,
+                      })
+                    }
                     className="relative h-16 w-16 rounded-lg overflow-hidden bg-muted shrink-0 hover:opacity-80 transition-opacity"
                   >
                     <Image
                       src={gift.image_url}
                       alt={gift.name}
                       fill
-                      className={`object-cover ${isReserved ? "opacity-50" : ""}`}
+                      className={`object-cover ${
+                        isReserved ? "opacity-50" : ""
+                      }`}
                     />
                   </button>
                 )}
@@ -167,7 +173,10 @@ export function GiftList({ gifts, userPin }: Props) {
       </ul>
 
       {/* Dialog para ver imagen en grande */}
-      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+      <Dialog
+        open={!!selectedImage}
+        onOpenChange={() => setSelectedImage(null)}
+      >
         <DialogContent className="max-w-2xl p-2">
           <DialogTitle className="sr-only">{selectedImage?.name}</DialogTitle>
           {selectedImage && (

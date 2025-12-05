@@ -1,11 +1,7 @@
 "use client";
 
-import { useState, useEffect, use, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -15,17 +11,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, ArrowLeft, Link2, ImagePlus, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-  getWishlistById,
-  verifySecretCode,
-  updateWishlist,
   deleteWishlist,
+  getWishlistById,
+  updateWishlist,
   uploadGiftImage,
+  verifySecretCode,
 } from "@/lib/actions";
-import { toast } from "sonner";
-import Link from "next/link";
+import { ArrowLeft, ImagePlus, Link2, Plus, Trash2, X } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { use, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 type Params = Promise<{ id: string }>;
 type GiftInput = { name: string; url: string; imageUrl: string };
@@ -52,7 +52,11 @@ export default function EditarPage({ params }: { params: Params }) {
           setName(wishlist.name);
           setGifts(
             wishlist.gifts.map(
-              (g: { name: string; url: string | null; image_url: string | null }) => ({
+              (g: {
+                name: string;
+                url: string | null;
+                image_url: string | null;
+              }) => ({
                 name: g.name,
                 url: g.url || "",
                 imageUrl: g.image_url || "",
@@ -87,7 +91,8 @@ export default function EditarPage({ params }: { params: Params }) {
     }
   };
 
-  const addGift = () => setGifts([...gifts, { name: "", url: "", imageUrl: "" }]);
+  const addGift = () =>
+    setGifts([...gifts, { name: "", url: "", imageUrl: "" }]);
 
   const removeGift = (index: number) => {
     if (gifts.length > 1) {
@@ -255,7 +260,9 @@ export default function EditarPage({ params }: { params: Params }) {
                       <Input
                         placeholder={`Regalo ${index + 1}`}
                         value={gift.name}
-                        onChange={(e) => updateGift(index, "name", e.target.value)}
+                        onChange={(e) =>
+                          updateGift(index, "name", e.target.value)
+                        }
                       />
                       {gifts.length > 1 && (
                         <Button
@@ -273,7 +280,9 @@ export default function EditarPage({ params }: { params: Params }) {
                       <Input
                         placeholder="Link de referencia (opcional)"
                         value={gift.url}
-                        onChange={(e) => updateGift(index, "url", e.target.value)}
+                        onChange={(e) =>
+                          updateGift(index, "url", e.target.value)
+                        }
                         className="text-sm"
                       />
                     </div>
@@ -323,21 +332,32 @@ export default function EditarPage({ params }: { params: Params }) {
                           onClick={() => fileInputRefs.current[index]?.click()}
                         >
                           <ImagePlus className="w-4 h-4 mr-2" />
-                          {uploadingIndex === index ? "Subiendo..." : "Añadir foto (opcional)"}
+                          {uploadingIndex === index
+                            ? "Subiendo..."
+                            : "Añadir foto (opcional)"}
                         </Button>
                       )}
                     </div>
                   </div>
                 ))}
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={addGift} className="mt-3">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addGift}
+                className="mt-3"
+              >
                 <Plus className="w-4 h-4 mr-1" />
                 Añadir regalo
               </Button>
             </div>
 
             <div className="flex gap-3">
-              <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+              <Dialog
+                open={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+              >
                 <DialogTrigger asChild>
                   <Button type="button" variant="outline" className="flex-1">
                     Eliminar lista
@@ -347,8 +367,8 @@ export default function EditarPage({ params }: { params: Params }) {
                   <DialogHeader>
                     <DialogTitle>¿Eliminar lista?</DialogTitle>
                     <DialogDescription>
-                      Esta acción no se puede deshacer. Se eliminará permanentemente tu lista de
-                      regalos.
+                      Esta acción no se puede deshacer. Se eliminará
+                      permanentemente tu lista de regalos.
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
@@ -359,7 +379,11 @@ export default function EditarPage({ params }: { params: Params }) {
                     >
                       Cancelar
                     </Button>
-                    <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                    >
                       {isDeleting ? "Eliminando..." : "Eliminar"}
                     </Button>
                   </DialogFooter>
