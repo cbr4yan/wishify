@@ -41,9 +41,9 @@ export default async function EventoPage({ params }: { params: Params }) {
             </div>
           ) : (
             <ul className="space-y-3">
-              {event.wishlists.map((wishlist: { id: string; slug: string; name: string }) => (
+              {event.wishlists.map((wishlist: { id: string; name: string }) => (
                 <li key={wishlist.id}>
-                  <Link href={`/w/${wishlist.slug}`}>
+                  <Link href={`/w/${wishlist.id}`}>
                     <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3">
                         <Gift className="w-5 h-5 text-primary" />
@@ -74,4 +74,3 @@ export default async function EventoPage({ params }: { params: Params }) {
     </main>
   );
 }
-

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, ArrowLeft, Copy, Check, Users, Link2 } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Copy, Check, Users, Link2, Lock } from "lucide-react";
 import { createWishlist, getEventById } from "@/lib/actions";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -20,14 +20,15 @@ function CrearForm() {
 
   const [eventName, setEventName] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const [pin, setPin] = useState("");
   const [gifts, setGifts] = useState<GiftInput[]>([{ name: "", url: "" }]);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<{
-    slug: string;
+    id: string;
     secretCode: string;
     eventId: string | null;
   } | null>(null);
-  const [copied, setCopied] = useState<"link" | "code" | null>(null);
+  const [copied, setCopied] = useState<"link" | "pin" | null>(null);
 
   useEffect(() => {
     if (eventId) {
@@ -67,16 +68,26 @@ function CrearForm() {
       return;
     }
 
+    if (pin && (pin.length < 4 || pin.length > 8)) {
+      toast.error("El PIN debe tener entre 4 y 8 dígitos");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await createWishlist(name.trim(), validGifts, eventId || undefined);
+      const response = await createWishlist(
+        name.trim(),
+        validGifts,
+        eventId || undefined,
+        pin || undefined
+      );
 
       if (response.error) {
         toast.error(response.error);
-      } else if (response.slug && response.secretCode) {
+      } else if (response.id && response.secretCode) {
         setResult({
-          slug: response.slug,
+          id: response.id,
           secretCode: response.secretCode,
           eventId: response.eventId || null,
         });
@@ -89,7 +100,7 @@ function CrearForm() {
     }
   };
 
-  const copyToClipboard = async (text: string, type: "link" | "code") => {
+  const copyToClipboard = async (text: string, type: "link" | "pin") => {
     await navigator.clipboard.writeText(text);
     setCopied(type);
     toast.success("Copiado");
@@ -97,7 +108,7 @@ function CrearForm() {
   };
 
   if (result) {
-    const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/w/${result.slug}`;
+    const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/w/${result.id}`;
 
     return (
       <Card className="w-full max-w-md">
@@ -121,7 +132,7 @@ function CrearForm() {
 
           <div className="p-4 bg-secondary rounded-lg">
             <Label className="text-sm text-muted-foreground">
-              Código secreto (guárdalo, solo se muestra una vez)
+              Tu PIN secreto (guárdalo, solo se muestra una vez)
             </Label>
             <div className="flex items-center gap-2 mt-2">
               <span className="text-3xl font-mono font-bold tracking-widest">
@@ -130,9 +141,9 @@ function CrearForm() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => copyToClipboard(result.secretCode, "code")}
+                onClick={() => copyToClipboard(result.secretCode, "pin")}
               >
-                {copied === "code" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                {copied === "pin" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
@@ -150,7 +161,7 @@ function CrearForm() {
                 >
                   Volver al evento
                 </Button>
-                <Button className="flex-1" onClick={() => router.push(`/w/${result.slug}`)}>
+                <Button className="flex-1" onClick={() => router.push(`/w/${result.id}`)}>
                   Ver mi lista
                 </Button>
               </>
@@ -159,7 +170,7 @@ function CrearForm() {
                 <Button variant="outline" className="flex-1" onClick={() => router.push("/")}>
                   Inicio
                 </Button>
-                <Button className="flex-1" onClick={() => router.push(`/w/${result.slug}`)}>
+                <Button className="flex-1" onClick={() => router.push(`/w/${result.id}`)}>
                   Ver mi lista
                 </Button>
               </>
@@ -200,6 +211,24 @@ function CrearForm() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="mt-2"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="pin" className="flex items-center gap-2">
+              <Lock className="w-4 h-4" />
+              PIN secreto (opcional)
+            </Label>
+            <Input
+              id="pin"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={8}
+              placeholder="4-8 dígitos (se genera uno si no lo pones)"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+              className="mt-2 font-mono"
             />
           </div>
 

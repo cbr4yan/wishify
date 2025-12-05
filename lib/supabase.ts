@@ -23,7 +23,6 @@ export type Event = {
 export type Wishlist = {
   id: string;
   event_id: string | null;
-  slug: string;
   name: string;
   secret_code: string;
   created_at: string;

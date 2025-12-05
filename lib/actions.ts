@@ -3,29 +3,22 @@
 import { createId } from "@paralleldrive/cuid2";
 import { supabase } from "./supabase";
 
-// Generar slug a partir del nombre
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
-
 // Generar código secreto de 6 dígitos
 function generateSecretCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// Validar PIN (4-8 dígitos)
+function isValidPin(pin: string): boolean {
+  return /^\d{4,8}$/.test(pin);
+}
+
 // ==================== EVENTOS ====================
 
 // Crear un nuevo evento
-export async function createEvent(name: string) {
+export async function createEvent(name: string, customPin?: string) {
   const id = createId();
-  const secretCode = generateSecretCode();
+  const secretCode = customPin && isValidPin(customPin) ? customPin : generateSecretCode();
 
   const { error } = await supabase
     .from("events")
@@ -55,7 +48,7 @@ export async function getEventById(id: string) {
 
   const { data: wishlists } = await supabase
     .from("wishlists")
-    .select("id, slug, name, created_at")
+    .select("id, name, created_at")
     .eq("event_id", event.id)
     .order("created_at", { ascending: true });
 
@@ -115,11 +108,11 @@ type GiftInput = {
 export async function createWishlist(
   name: string,
   gifts: GiftInput[],
-  eventId?: string
+  eventId?: string,
+  customPin?: string
 ) {
   const id = createId();
-  const baseSlug = generateSlug(name);
-  const secretCode = generateSecretCode();
+  const secretCode = customPin && isValidPin(customPin) ? customPin : generateSecretCode();
 
   // Verificar que el evento existe si se proporciona
   if (eventId) {
@@ -134,24 +127,8 @@ export async function createWishlist(
     }
   }
 
-  let slug = baseSlug;
-  let counter = 1;
-
-  while (true) {
-    const { data: existing } = await supabase
-      .from("wishlists")
-      .select("id")
-      .eq("slug", slug)
-      .single();
-
-    if (!existing) break;
-    slug = `${baseSlug}-${counter}`;
-    counter++;
-  }
-
   const { error: wishlistError } = await supabase.from("wishlists").insert({
     id,
-    slug,
     name,
     secret_code: secretCode,
     event_id: eventId || null,
@@ -181,18 +158,18 @@ export async function createWishlist(
   }
 
   return {
-    slug,
+    id,
     secretCode,
     eventId: eventId || null,
   };
 }
 
-// Obtener una lista por slug
-export async function getWishlistBySlug(slug: string) {
+// Obtener una lista por ID
+export async function getWishlistById(id: string) {
   const { data: wishlist, error } = await supabase
     .from("wishlists")
     .select("*")
-    .eq("slug", slug)
+    .eq("id", id)
     .single();
 
   if (error || !wishlist) {
@@ -234,11 +211,11 @@ export async function reserveGift(giftId: string) {
 }
 
 // Verificar código secreto de lista
-export async function verifySecretCode(slug: string, code: string) {
+export async function verifySecretCode(id: string, code: string) {
   const { data: wishlist } = await supabase
     .from("wishlists")
     .select("id, secret_code")
-    .eq("slug", slug)
+    .eq("id", id)
     .single();
 
   if (!wishlist) {
@@ -254,12 +231,12 @@ export async function verifySecretCode(slug: string, code: string) {
 
 // Actualizar lista
 export async function updateWishlist(
-  slug: string,
+  id: string,
   code: string,
   name: string,
   gifts: GiftInput[]
 ) {
-  const verification = await verifySecretCode(slug, code);
+  const verification = await verifySecretCode(id, code);
   if (!verification.valid) {
     return { error: verification.error };
   }
@@ -294,8 +271,8 @@ export async function updateWishlist(
 }
 
 // Eliminar lista
-export async function deleteWishlist(slug: string, code: string) {
-  const verification = await verifySecretCode(slug, code);
+export async function deleteWishlist(id: string, code: string) {
+  const verification = await verifySecretCode(id, code);
   if (!verification.valid) {
     return { error: verification.error };
   }

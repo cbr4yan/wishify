@@ -14,7 +14,6 @@ CREATE TABLE events (
 CREATE TABLE wishlists (
   id TEXT PRIMARY KEY,
   event_id TEXT REFERENCES events(id) ON DELETE CASCADE,
-  slug TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   secret_code TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -31,7 +30,6 @@ CREATE TABLE gifts (
 );
 
 -- Indexes
-CREATE INDEX idx_wishlists_slug ON wishlists(slug);
 CREATE INDEX idx_wishlists_event_id ON wishlists(event_id);
 CREATE INDEX idx_gifts_wishlist_id ON gifts(wishlist_id);
 

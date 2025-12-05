@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, Trash2, ArrowLeft, Link2 } from "lucide-react";
 import {
-  getWishlistBySlug,
+  getWishlistById,
   verifySecretCode,
   updateWishlist,
   deleteWishlist,
@@ -25,11 +25,11 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 
-type Params = Promise<{ slug: string }>;
+type Params = Promise<{ id: string }>;
 type GiftInput = { name: string; url: string };
 
 export default function EditarPage({ params }: { params: Params }) {
-  const { slug } = use(params);
+  const { id } = use(params);
   const router = useRouter();
   const [code, setCode] = useState("");
   const [isVerified, setIsVerified] = useState(false);
@@ -42,7 +42,7 @@ export default function EditarPage({ params }: { params: Params }) {
 
   useEffect(() => {
     if (isVerified) {
-      getWishlistBySlug(slug).then((wishlist) => {
+      getWishlistById(id).then((wishlist) => {
         if (wishlist) {
           setName(wishlist.name);
           setGifts(
@@ -54,23 +54,23 @@ export default function EditarPage({ params }: { params: Params }) {
         }
       });
     }
-  }, [isVerified, slug]);
+  }, [isVerified, id]);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (code.length !== 6) {
-      toast.error("El código debe tener 6 dígitos");
+    if (code.length < 4) {
+      toast.error("El PIN debe tener al menos 4 dígitos");
       return;
     }
 
     setIsVerifying(true);
     try {
-      const result = await verifySecretCode(slug, code);
+      const result = await verifySecretCode(id, code);
       if (result.valid) {
         setIsVerified(true);
-        toast.success("Código verificado");
+        toast.success("PIN verificado");
       } else {
-        toast.error(result.error || "Código incorrecto");
+        toast.error(result.error || "PIN incorrecto");
       }
     } catch {
       toast.error("Error al verificar");
@@ -109,12 +109,12 @@ export default function EditarPage({ params }: { params: Params }) {
 
     setIsLoading(true);
     try {
-      const result = await updateWishlist(slug, code, name.trim(), validGifts);
+      const result = await updateWishlist(id, code, name.trim(), validGifts);
       if (result.error) {
         toast.error(result.error);
       } else {
         toast.success("Lista actualizada");
-        router.push(`/w/${slug}`);
+        router.push(`/w/${id}`);
       }
     } catch {
       toast.error("Error al actualizar");
@@ -126,7 +126,7 @@ export default function EditarPage({ params }: { params: Params }) {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const result = await deleteWishlist(slug, code);
+      const result = await deleteWishlist(id, code);
       if (result.error) {
         toast.error(result.error);
       } else {
@@ -147,7 +147,7 @@ export default function EditarPage({ params }: { params: Params }) {
         <Card className="w-full max-w-sm">
           <CardHeader>
             <Link
-              href={`/w/${slug}`}
+              href={`/w/${id}`}
               className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -158,14 +158,14 @@ export default function EditarPage({ params }: { params: Params }) {
           <CardContent>
             <form onSubmit={handleVerify} className="space-y-4">
               <div>
-                <Label htmlFor="code">Código secreto</Label>
+                <Label htmlFor="code">Tu PIN secreto</Label>
                 <Input
                   id="code"
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  maxLength={6}
-                  placeholder="000000"
+                  maxLength={8}
+                  placeholder="••••••"
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                   className="mt-2 text-center text-2xl font-mono tracking-widest"
@@ -186,7 +186,7 @@ export default function EditarPage({ params }: { params: Params }) {
       <Card className="w-full max-w-lg">
         <CardHeader>
           <Link
-            href={`/w/${slug}`}
+            href={`/w/${id}`}
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -286,3 +286,4 @@ export default function EditarPage({ params }: { params: Params }) {
     </main>
   );
 }
+

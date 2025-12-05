@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation";
-import { getWishlistBySlug } from "@/lib/actions";
+import { getWishlistById } from "@/lib/actions";
 import { GiftList } from "./gift-list";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Gift, Settings, Users } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-type Params = Promise<{ slug: string }>;
+type Params = Promise<{ id: string }>;
 
 export default async function WishlistPage({ params }: { params: Params }) {
-  const { slug } = await params;
-  const wishlist = await getWishlistBySlug(slug);
+  const { id } = await params;
+  const wishlist = await getWishlistById(id);
 
   if (!wishlist) {
     notFound();
@@ -25,7 +25,7 @@ export default async function WishlistPage({ params }: { params: Params }) {
               <Gift className="w-6 h-6 text-primary" />
               <span className="text-sm text-muted-foreground">Lista de regalos de</span>
             </div>
-            <Link href={`/editar/${slug}`}>
+            <Link href={`/editar/${id}`}>
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <Settings className="w-4 h-4" />
               </Button>
@@ -66,3 +66,4 @@ export default async function WishlistPage({ params }: { params: Params }) {
     </main>
   );
 }
+

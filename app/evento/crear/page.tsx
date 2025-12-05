@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Copy, Check, Users } from "lucide-react";
+import { ArrowLeft, Copy, Check, Users, Lock } from "lucide-react";
 import { createEvent } from "@/lib/actions";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -14,9 +14,10 @@ import Link from "next/link";
 export default function CrearEventoPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [pin, setPin] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<{ id: string; secretCode: string } | null>(null);
-  const [copied, setCopied] = useState<"link" | "code" | null>(null);
+  const [copied, setCopied] = useState<"link" | "pin" | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,10 +27,15 @@ export default function CrearEventoPage() {
       return;
     }
 
+    if (pin && (pin.length < 4 || pin.length > 8)) {
+      toast.error("El PIN debe tener entre 4 y 8 dígitos");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await createEvent(name.trim());
+      const response = await createEvent(name.trim(), pin || undefined);
 
       if (response.error) {
         toast.error(response.error);
@@ -44,7 +50,7 @@ export default function CrearEventoPage() {
     }
   };
 
-  const copyToClipboard = async (text: string, type: "link" | "code") => {
+  const copyToClipboard = async (text: string, type: "link" | "pin") => {
     await navigator.clipboard.writeText(text);
     setCopied(type);
     toast.success("Copiado");
@@ -79,7 +85,7 @@ export default function CrearEventoPage() {
 
             <div className="p-4 bg-secondary rounded-lg">
               <Label className="text-sm text-muted-foreground">
-                Código secreto del evento (solo se muestra una vez)
+                PIN secreto del evento (solo se muestra una vez)
               </Label>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-3xl font-mono font-bold tracking-widest">
@@ -88,9 +94,9 @@ export default function CrearEventoPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => copyToClipboard(result.secretCode, "code")}
+                  onClick={() => copyToClipboard(result.secretCode, "pin")}
                 >
-                  {copied === "code" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  {copied === "pin" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
@@ -141,6 +147,24 @@ export default function CrearEventoPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="mt-2"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="pin" className="flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                PIN secreto (opcional)
+              </Label>
+              <Input
+                id="pin"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={8}
+                placeholder="4-8 dígitos (se genera uno si no lo pones)"
+                value={pin}
+                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                className="mt-2 font-mono"
               />
             </div>
 
