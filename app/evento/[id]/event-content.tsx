@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,6 +13,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Gift, Plus, Settings, Users, Lock } from "lucide-react";
 import { useUserStore } from "@/lib/store";
+import { verifyPinExists } from "@/lib/actions";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -26,6 +27,7 @@ export function EventContent({ event }: { event: EventData }) {
   const [mounted, setMounted] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [isCreatingPin, setIsCreatingPin] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const { userPin, setUserPin } = useUserStore();
 
   useEffect(() => {
@@ -38,8 +40,23 @@ export function EventContent({ event }: { event: EventData }) {
       toast.error("El PIN debe tener entre 4 y 8 dígitos");
       return;
     }
-    setUserPin(pinInput);
-    toast.success(isCreatingPin ? "¡PIN creado!" : "¡Identificado!");
+
+    if (isCreatingPin) {
+      // Crear nuevo PIN - no necesita verificación
+      setUserPin(pinInput);
+      toast.success("¡PIN creado! Recuérdalo para futuras sesiones.");
+    } else {
+      // Verificar que el PIN existe
+      startTransition(async () => {
+        const result = await verifyPinExists(pinInput);
+        if (result.exists) {
+          setUserPin(pinInput);
+          toast.success("¡Identificado!");
+        } else {
+          toast.error(result.error || "PIN no encontrado");
+        }
+      });
+    }
   };
 
   // Mientras carga, mostrar loading
@@ -107,22 +124,32 @@ export function EventContent({ event }: { event: EventData }) {
                   autoFocus
                 />
               </div>
-              <Button type="submit" className="w-full" size="lg">
-                {isCreatingPin ? "Crear PIN y entrar" : "Entrar"}
+              <Button type="submit" className="w-full" size="lg" disabled={isPending}>
+                {isPending
+                  ? "Verificando..."
+                  : isCreatingPin
+                    ? "Crear PIN y entrar"
+                    : "Entrar"}
               </Button>
             </form>
 
             <div className="mt-4 pt-4 border-t text-center">
               {isCreatingPin ? (
                 <button
-                  onClick={() => setIsCreatingPin(false)}
+                  onClick={() => {
+                    setIsCreatingPin(false);
+                    setPinInput("");
+                  }}
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   Ya tengo un PIN
                 </button>
               ) : (
                 <button
-                  onClick={() => setIsCreatingPin(true)}
+                  onClick={() => {
+                    setIsCreatingPin(true);
+                    setPinInput("");
+                  }}
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   No tengo PIN, crear uno nuevo

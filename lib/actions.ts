@@ -8,6 +8,42 @@ function isValidPin(pin: string): boolean {
   return /^\d{4,8}$/.test(pin);
 }
 
+// Verificar si un PIN existe (solo creadores de listas/eventos)
+export async function verifyPinExists(pin: string) {
+  if (!isValidPin(pin)) {
+    return { exists: false, error: "PIN inválido" };
+  }
+
+  // Buscar en wishlists
+  const { data: wishlist } = await supabase
+    .from("wishlists")
+    .select("id")
+    .eq("secret_code", pin)
+    .limit(1)
+    .single();
+
+  if (wishlist) {
+    return { exists: true };
+  }
+
+  // Buscar en events
+  const { data: event } = await supabase
+    .from("events")
+    .select("id")
+    .eq("secret_code", pin)
+    .limit(1)
+    .single();
+
+  if (event) {
+    return { exists: true };
+  }
+
+  return {
+    exists: false,
+    error: "Este PIN no existe. ¿Quieres crear uno nuevo?",
+  };
+}
+
 // ==================== EVENTOS ====================
 
 // Crear un nuevo evento (PIN obligatorio)
@@ -145,7 +181,9 @@ export async function createWishlist(
     }));
 
   if (giftsToInsert.length > 0) {
-    const { error: giftsError } = await supabase.from("gifts").insert(giftsToInsert);
+    const { error: giftsError } = await supabase
+      .from("gifts")
+      .insert(giftsToInsert);
 
     if (giftsError) {
       return { error: "Error al crear los regalos" };

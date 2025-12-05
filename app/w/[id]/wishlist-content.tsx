@@ -1,8 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -10,13 +8,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Gift, Settings, Users, Lock, Plus } from "lucide-react";
+import { verifyPinExists } from "@/lib/actions";
 import { useUserStore } from "@/lib/store";
-import { GiftList } from "./gift-list";
-import Link from "next/link";
-import { toast } from "sonner";
 import type { Gift as GiftType } from "@/lib/supabase";
+import { ArrowLeft, Gift, Lock, Plus, Settings, Users } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState, useTransition } from "react";
+import { toast } from "sonner";
+import { GiftList } from "./gift-list";
 
 type WishlistData = {
   id: string;
@@ -29,6 +30,7 @@ export function WishlistContent({ wishlist }: { wishlist: WishlistData }) {
   const [mounted, setMounted] = useState(false);
   const [pinInput, setPinInput] = useState("");
   const [isCreatingPin, setIsCreatingPin] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const { userPin, setUserPin } = useUserStore();
 
   useEffect(() => {
@@ -41,8 +43,23 @@ export function WishlistContent({ wishlist }: { wishlist: WishlistData }) {
       toast.error("El PIN debe tener entre 4 y 8 dígitos");
       return;
     }
-    setUserPin(pinInput);
-    toast.success(isCreatingPin ? "¡PIN creado!" : "¡Identificado!");
+
+    if (isCreatingPin) {
+      // Crear nuevo PIN - no necesita verificación
+      setUserPin(pinInput);
+      toast.success("¡PIN creado! Recuérdalo para futuras sesiones.");
+    } else {
+      // Verificar que el PIN existe
+      startTransition(async () => {
+        const result = await verifyPinExists(pinInput);
+        if (result.exists) {
+          setUserPin(pinInput);
+          toast.success("¡Identificado!");
+        } else {
+          toast.error(result.error || "PIN no encontrado");
+        }
+      });
+    }
   };
 
   const backUrl = wishlist.event ? `/evento/${wishlist.event.id}` : "/";
@@ -97,7 +114,9 @@ export function WishlistContent({ wishlist }: { wishlist: WishlistData }) {
             <form onSubmit={handlePinSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="pin">
-                  {isCreatingPin ? "Tu nuevo PIN (4-8 dígitos)" : "Tu PIN (4-8 dígitos)"}
+                  {isCreatingPin
+                    ? "Tu nuevo PIN (4-8 dígitos)"
+                    : "Tu PIN (4-8 dígitos)"}
                 </Label>
                 <Input
                   id="pin"
@@ -107,27 +126,44 @@ export function WishlistContent({ wishlist }: { wishlist: WishlistData }) {
                   maxLength={8}
                   placeholder="••••••"
                   value={pinInput}
-                  onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) =>
+                    setPinInput(e.target.value.replace(/\D/g, ""))
+                  }
                   className="mt-2 text-center text-2xl font-mono tracking-widest"
                   autoFocus
                 />
               </div>
-              <Button type="submit" className="w-full" size="lg">
-                {isCreatingPin ? "Crear PIN y entrar" : "Entrar"}
+              <Button
+                type="submit"
+                className="w-full"
+                size="lg"
+                disabled={isPending}
+              >
+                {isPending
+                  ? "Verificando..."
+                  : isCreatingPin
+                  ? "Crear PIN y entrar"
+                  : "Entrar"}
               </Button>
             </form>
 
             <div className="mt-4 pt-4 border-t text-center">
               {isCreatingPin ? (
                 <button
-                  onClick={() => setIsCreatingPin(false)}
+                  onClick={() => {
+                    setIsCreatingPin(false);
+                    setPinInput("");
+                  }}
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   Ya tengo un PIN
                 </button>
               ) : (
                 <button
-                  onClick={() => setIsCreatingPin(true)}
+                  onClick={() => {
+                    setIsCreatingPin(true);
+                    setPinInput("");
+                  }}
                   className="text-sm text-muted-foreground hover:text-foreground"
                 >
                   No tengo PIN, crear uno nuevo
@@ -161,7 +197,9 @@ export function WishlistContent({ wishlist }: { wishlist: WishlistData }) {
           </div>
           <div className="flex items-center gap-2">
             <Gift className="w-6 h-6 text-primary" />
-            <span className="text-sm text-muted-foreground">Lista de regalos de</span>
+            <span className="text-sm text-muted-foreground">
+              Lista de regalos de
+            </span>
           </div>
           <CardTitle className="text-3xl">{wishlist.name}</CardTitle>
           {wishlist.event && (
