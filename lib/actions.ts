@@ -210,6 +210,16 @@ export async function reserveGift(giftId: string) {
   return { success: !error };
 }
 
+// Desreservar un regalo
+export async function unreserveGift(giftId: string) {
+  const { error } = await supabase
+    .from("gifts")
+    .update({ reserved: false })
+    .eq("id", giftId);
+
+  return { success: !error };
+}
+
 // Verificar código secreto de lista
 export async function verifySecretCode(id: string, code: string) {
   const { data: wishlist } = await supabase

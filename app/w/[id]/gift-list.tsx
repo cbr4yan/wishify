@@ -2,35 +2,53 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Gift as GiftIcon, Check, ExternalLink } from "lucide-react";
-import { reserveGift } from "@/lib/actions";
+import { Gift as GiftIcon, Check, ExternalLink, Undo2 } from "lucide-react";
+import { reserveGift, unreserveGift } from "@/lib/actions";
 import { useReservationStore } from "@/lib/store";
 import { toast } from "sonner";
 import type { Gift } from "@/lib/supabase";
 
 export function GiftList({ gifts }: { gifts: Gift[] }) {
   const [reservedIds, setReservedIds] = useState<string[]>([]);
+  const [unreservedIds, setUnreservedIds] = useState<string[]>([]);
   const [mounted, setMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const { addReservation, reservedGifts } = useReservationStore();
+  const { addReservation, removeReservation, reservedGifts } = useReservationStore();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const handleReserve = (giftId: string) => {
-    // Optimistic update: marcar inmediatamente como reservado
+    // Optimistic update
     setReservedIds((prev) => [...prev, giftId]);
+    setUnreservedIds((prev) => prev.filter((id) => id !== giftId));
     addReservation(giftId);
     toast.success("¡Reservado! Nadie más verá que fuiste tú.");
 
-    // Llamar al servidor en background
     startTransition(async () => {
       const result = await reserveGift(giftId);
       if (!result.success) {
-        // Revertir si falla
         setReservedIds((prev) => prev.filter((id) => id !== giftId));
+        removeReservation(giftId);
         toast.error("Error al reservar. Intenta de nuevo.");
+      }
+    });
+  };
+
+  const handleUnreserve = (giftId: string) => {
+    // Optimistic update
+    setUnreservedIds((prev) => [...prev, giftId]);
+    setReservedIds((prev) => prev.filter((id) => id !== giftId));
+    removeReservation(giftId);
+    toast.success("Reserva cancelada");
+
+    startTransition(async () => {
+      const result = await unreserveGift(giftId);
+      if (!result.success) {
+        setUnreservedIds((prev) => prev.filter((id) => id !== giftId));
+        addReservation(giftId);
+        toast.error("Error al cancelar. Intenta de nuevo.");
       }
     });
   };
@@ -47,8 +65,10 @@ export function GiftList({ gifts }: { gifts: Gift[] }) {
   return (
     <ul className="space-y-3">
       {gifts.map((gift) => {
-        const isReserved = gift.reserved || reservedIds.includes(gift.id);
         const wasReservedByMe = mounted && reservedGifts.includes(gift.id);
+        const isUnreserved = unreservedIds.includes(gift.id);
+        const isReserved =
+          (gift.reserved || reservedIds.includes(gift.id)) && !isUnreserved;
 
         return (
           <li
@@ -80,10 +100,24 @@ export function GiftList({ gifts }: { gifts: Gift[] }) {
               </div>
 
               {isReserved ? (
-                <span className="text-sm text-muted-foreground flex items-center gap-1 shrink-0 ml-3">
-                  <Check className="w-4 h-4" />
-                  {wasReservedByMe ? "Lo regalas tú" : "Reservado"}
-                </span>
+                <div className="flex items-center gap-2 shrink-0 ml-3">
+                  <span className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Check className="w-4 h-4" />
+                    {wasReservedByMe ? "Lo regalas tú" : "Reservado"}
+                  </span>
+                  {wasReservedByMe && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleUnreserve(gift.id)}
+                      disabled={isPending}
+                      className="h-7 px-2 text-muted-foreground hover:text-foreground"
+                    >
+                      <Undo2 className="w-3 h-3 mr-1" />
+                      Deshacer
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <Button
                   size="sm"
@@ -102,4 +136,3 @@ export function GiftList({ gifts }: { gifts: Gift[] }) {
     </ul>
   );
 }
-
