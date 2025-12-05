@@ -1,10 +1,10 @@
 -- Wishify Database Schema
 -- Run this in your Supabase SQL Editor
+-- Uses CUID2 for IDs (generated in the app, not by the database)
 
 -- Table: events (grupos/eventos)
 CREATE TABLE events (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  slug TEXT UNIQUE NOT NULL,
+  id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   secret_code TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -12,8 +12,8 @@ CREATE TABLE events (
 
 -- Table: wishlists
 CREATE TABLE wishlists (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY,
+  event_id TEXT REFERENCES events(id) ON DELETE CASCADE,
   slug TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   secret_code TEXT NOT NULL,
@@ -22,15 +22,14 @@ CREATE TABLE wishlists (
 
 -- Table: gifts
 CREATE TABLE gifts (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  wishlist_id UUID REFERENCES wishlists(id) ON DELETE CASCADE,
+  id TEXT PRIMARY KEY,
+  wishlist_id TEXT REFERENCES wishlists(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
   reserved BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Indexes for better performance
-CREATE INDEX idx_events_slug ON events(slug);
+-- Indexes
 CREATE INDEX idx_wishlists_slug ON wishlists(slug);
 CREATE INDEX idx_wishlists_event_id ON wishlists(event_id);
 CREATE INDEX idx_gifts_wishlist_id ON gifts(wishlist_id);
@@ -41,6 +40,6 @@ ALTER TABLE wishlists ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gifts ENABLE ROW LEVEL SECURITY;
 
 -- Policies: Allow all operations (public app without auth)
-CREATE POLICY "Allow all operations on events" ON events FOR ALL USING (true);
-CREATE POLICY "Allow all operations on wishlists" ON wishlists FOR ALL USING (true);
-CREATE POLICY "Allow all operations on gifts" ON gifts FOR ALL USING (true);
+CREATE POLICY "Allow all on events" ON events FOR ALL USING (true);
+CREATE POLICY "Allow all on wishlists" ON wishlists FOR ALL USING (true);
+CREATE POLICY "Allow all on gifts" ON gifts FOR ALL USING (true);

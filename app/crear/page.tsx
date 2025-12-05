@@ -7,14 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, ArrowLeft, Copy, Check, Users } from "lucide-react";
-import { createWishlist, getEventBySlug } from "@/lib/actions";
+import { createWishlist, getEventById } from "@/lib/actions";
 import { toast } from "sonner";
 import Link from "next/link";
 
 function CrearForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const eventoSlug = searchParams.get("evento");
+  const eventId = searchParams.get("evento");
 
   const [eventName, setEventName] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -23,19 +23,19 @@ function CrearForm() {
   const [result, setResult] = useState<{
     slug: string;
     secretCode: string;
-    eventSlug: string | null;
+    eventId: string | null;
   } | null>(null);
   const [copied, setCopied] = useState<"link" | "code" | null>(null);
 
   useEffect(() => {
-    if (eventoSlug) {
-      getEventBySlug(eventoSlug).then((event) => {
+    if (eventId) {
+      getEventById(eventId).then((event) => {
         if (event) {
           setEventName(event.name);
         }
       });
     }
-  }, [eventoSlug]);
+  }, [eventId]);
 
   const addGift = () => setGifts([...gifts, ""]);
 
@@ -68,7 +68,7 @@ function CrearForm() {
     setIsLoading(true);
 
     try {
-      const response = await createWishlist(name.trim(), validGifts, eventoSlug || undefined);
+      const response = await createWishlist(name.trim(), validGifts, eventId || undefined);
 
       if (response.error) {
         toast.error(response.error);
@@ -76,7 +76,7 @@ function CrearForm() {
         setResult({
           slug: response.slug,
           secretCode: response.secretCode,
-          eventSlug: response.eventSlug || null,
+          eventId: response.eventId || null,
         });
         toast.success("¡Lista creada!");
       }
@@ -139,12 +139,12 @@ function CrearForm() {
           </div>
 
           <div className="flex gap-3">
-            {result.eventSlug ? (
+            {result.eventId ? (
               <>
                 <Button
                   variant="outline"
                   className="flex-1"
-                  onClick={() => router.push(`/evento/${result.eventSlug}`)}
+                  onClick={() => router.push(`/evento/${result.eventId}`)}
                 >
                   Volver al evento
                 </Button>
@@ -168,7 +168,7 @@ function CrearForm() {
     );
   }
 
-  const backUrl = eventoSlug ? `/evento/${eventoSlug}` : "/";
+  const backUrl = eventId ? `/evento/${eventId}` : "/";
 
   return (
     <Card className="w-full max-w-md">

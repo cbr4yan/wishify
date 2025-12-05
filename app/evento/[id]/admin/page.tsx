@@ -20,10 +20,10 @@ import { verifyEventSecretCode, deleteEvent } from "@/lib/actions";
 import { toast } from "sonner";
 import Link from "next/link";
 
-type Params = Promise<{ slug: string }>;
+type Params = Promise<{ id: string }>;
 
 export default function AdminEventoPage({ params }: { params: Params }) {
-  const { slug } = use(params);
+  const { id } = use(params);
   const router = useRouter();
   const [code, setCode] = useState("");
   const [isVerified, setIsVerified] = useState(false);
@@ -40,7 +40,7 @@ export default function AdminEventoPage({ params }: { params: Params }) {
 
     setIsVerifying(true);
     try {
-      const result = await verifyEventSecretCode(slug, code);
+      const result = await verifyEventSecretCode(id, code);
       if (result.valid) {
         setIsVerified(true);
         toast.success("Código verificado");
@@ -57,7 +57,7 @@ export default function AdminEventoPage({ params }: { params: Params }) {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const result = await deleteEvent(slug, code);
+      const result = await deleteEvent(id, code);
       if (result.error) {
         toast.error(result.error);
       } else {
@@ -78,7 +78,7 @@ export default function AdminEventoPage({ params }: { params: Params }) {
         <Card className="w-full max-w-sm">
           <CardHeader>
             <Link
-              href={`/evento/${slug}`}
+              href={`/evento/${id}`}
               className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -117,7 +117,7 @@ export default function AdminEventoPage({ params }: { params: Params }) {
       <Card className="w-full max-w-md">
         <CardHeader>
           <Link
-            href={`/evento/${slug}`}
+            href={`/evento/${id}`}
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2"
           >
             <ArrowLeft className="w-4 h-4" />

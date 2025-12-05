@@ -1,15 +1,15 @@
 import { notFound } from "next/navigation";
-import { getEventBySlug } from "@/lib/actions";
+import { getEventById } from "@/lib/actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, Gift, Plus, Settings } from "lucide-react";
 import Link from "next/link";
 
-type Params = Promise<{ slug: string }>;
+type Params = Promise<{ id: string }>;
 
 export default async function EventoPage({ params }: { params: Params }) {
-  const { slug } = await params;
-  const event = await getEventBySlug(slug);
+  const { id } = await params;
+  const event = await getEventById(id);
 
   if (!event) {
     notFound();
@@ -24,7 +24,7 @@ export default async function EventoPage({ params }: { params: Params }) {
               <Users className="w-6 h-6 text-primary" />
               <span className="text-sm text-muted-foreground">Evento</span>
             </div>
-            <Link href={`/evento/${slug}/admin`}>
+            <Link href={`/evento/${id}/admin`}>
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <Settings className="w-4 h-4" />
               </Button>
@@ -58,7 +58,7 @@ export default async function EventoPage({ params }: { params: Params }) {
           )}
 
           <div className="pt-4 border-t">
-            <Link href={`/crear?evento=${slug}`}>
+            <Link href={`/crear?evento=${id}`}>
               <Button className="w-full" size="lg">
                 <Plus className="w-4 h-4 mr-2" />
                 Añadir mi lista

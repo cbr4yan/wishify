@@ -15,7 +15,7 @@ export default function CrearEventoPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<{ slug: string; secretCode: string } | null>(null);
+  const [result, setResult] = useState<{ id: string; secretCode: string } | null>(null);
   const [copied, setCopied] = useState<"link" | "code" | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,8 +33,8 @@ export default function CrearEventoPage() {
 
       if (response.error) {
         toast.error(response.error);
-      } else if (response.slug && response.secretCode) {
-        setResult({ slug: response.slug, secretCode: response.secretCode });
+      } else if (response.id && response.secretCode) {
+        setResult({ id: response.id, secretCode: response.secretCode });
         toast.success("¡Evento creado!");
       }
     } catch {
@@ -52,7 +52,7 @@ export default function CrearEventoPage() {
   };
 
   if (result) {
-    const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/evento/${result.slug}`;
+    const publicUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/evento/${result.id}`;
 
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-6">
@@ -102,7 +102,7 @@ export default function CrearEventoPage() {
               <Button variant="outline" className="flex-1" onClick={() => router.push("/")}>
                 Inicio
               </Button>
-              <Button className="flex-1" onClick={() => router.push(`/evento/${result.slug}`)}>
+              <Button className="flex-1" onClick={() => router.push(`/evento/${result.id}`)}>
                 Ver evento
               </Button>
             </div>
@@ -153,4 +153,3 @@ export default function CrearEventoPage() {
     </main>
   );
 }
-

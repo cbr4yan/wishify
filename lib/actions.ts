@@ -1,5 +1,6 @@
 "use server";
 
+import { createId } from "@paralleldrive/cuid2";
 import { supabase } from "./supabase";
 
 // Generar slug a partir del nombre
@@ -23,46 +24,29 @@ function generateSecretCode(): string {
 
 // Crear un nuevo evento
 export async function createEvent(name: string) {
-  const baseSlug = generateSlug(name);
+  const id = createId();
   const secretCode = generateSecretCode();
 
-  let slug = baseSlug;
-  let counter = 1;
-
-  while (true) {
-    const { data: existing } = await supabase
-      .from("events")
-      .select("id")
-      .eq("slug", slug)
-      .single();
-
-    if (!existing) break;
-    slug = `${baseSlug}-${counter}`;
-    counter++;
-  }
-
-  const { data: event, error } = await supabase
+  const { error } = await supabase
     .from("events")
-    .insert({ slug, name, secret_code: secretCode })
-    .select()
-    .single();
+    .insert({ id, name, secret_code: secretCode });
 
-  if (error || !event) {
+  if (error) {
     return { error: "Error al crear el evento" };
   }
 
   return {
-    slug: event.slug,
-    secretCode: secretCode,
+    id,
+    secretCode,
   };
 }
 
-// Obtener evento por slug con sus listas
-export async function getEventBySlug(slug: string) {
+// Obtener evento por ID con sus listas
+export async function getEventById(id: string) {
   const { data: event, error } = await supabase
     .from("events")
     .select("*")
-    .eq("slug", slug)
+    .eq("id", id)
     .single();
 
   if (error || !event) {
@@ -82,11 +66,11 @@ export async function getEventBySlug(slug: string) {
 }
 
 // Verificar código secreto del evento
-export async function verifyEventSecretCode(slug: string, code: string) {
+export async function verifyEventSecretCode(id: string, code: string) {
   const { data: event } = await supabase
     .from("events")
     .select("id, secret_code")
-    .eq("slug", slug)
+    .eq("id", id)
     .single();
 
   if (!event) {
@@ -101,8 +85,8 @@ export async function verifyEventSecretCode(slug: string, code: string) {
 }
 
 // Eliminar evento
-export async function deleteEvent(slug: string, code: string) {
-  const verification = await verifyEventSecretCode(slug, code);
+export async function deleteEvent(id: string, code: string) {
+  const verification = await verifyEventSecretCode(id, code);
   if (!verification.valid) {
     return { error: verification.error };
   }
@@ -125,24 +109,23 @@ export async function deleteEvent(slug: string, code: string) {
 export async function createWishlist(
   name: string,
   gifts: string[],
-  eventSlug?: string
+  eventId?: string
 ) {
+  const id = createId();
   const baseSlug = generateSlug(name);
   const secretCode = generateSecretCode();
 
-  // Obtener event_id si se proporciona eventSlug
-  let eventId: string | null = null;
-  if (eventSlug) {
+  // Verificar que el evento existe si se proporciona
+  if (eventId) {
     const { data: event } = await supabase
       .from("events")
       .select("id")
-      .eq("slug", eventSlug)
+      .eq("id", eventId)
       .single();
 
     if (!event) {
       return { error: "Evento no encontrado" };
     }
-    eventId = event.id;
   }
 
   let slug = baseSlug;
@@ -160,20 +143,23 @@ export async function createWishlist(
     counter++;
   }
 
-  const { data: wishlist, error: wishlistError } = await supabase
-    .from("wishlists")
-    .insert({ slug, name, secret_code: secretCode, event_id: eventId })
-    .select()
-    .single();
+  const { error: wishlistError } = await supabase.from("wishlists").insert({
+    id,
+    slug,
+    name,
+    secret_code: secretCode,
+    event_id: eventId || null,
+  });
 
-  if (wishlistError || !wishlist) {
+  if (wishlistError) {
     return { error: "Error al crear la lista" };
   }
 
   const giftsToInsert = gifts
     .filter((g) => g.trim())
     .map((g) => ({
-      wishlist_id: wishlist.id,
+      id: createId(),
+      wishlist_id: id,
       name: g.trim(),
     }));
 
@@ -188,9 +174,9 @@ export async function createWishlist(
   }
 
   return {
-    slug: wishlist.slug,
-    secretCode: secretCode,
-    eventSlug: eventSlug || null,
+    slug,
+    secretCode,
+    eventId: eventId || null,
   };
 }
 
@@ -217,7 +203,7 @@ export async function getWishlistBySlug(slug: string) {
   if (wishlist.event_id) {
     const { data: eventData } = await supabase
       .from("events")
-      .select("slug, name")
+      .select("id, name")
       .eq("id", wishlist.event_id)
       .single();
     event = eventData;
@@ -287,6 +273,7 @@ export async function updateWishlist(
   const giftsToInsert = gifts
     .filter((g) => g.name.trim())
     .map((g) => ({
+      id: createId(),
       wishlist_id: wishlistId,
       name: g.name.trim(),
     }));

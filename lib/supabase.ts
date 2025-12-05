@@ -15,7 +15,6 @@ export const supabase = getSupabaseClient();
 // Tipos para la base de datos
 export type Event = {
   id: string;
-  slug: string;
   name: string;
   secret_code: string;
   created_at: string;

@@ -35,7 +35,7 @@ export default async function WishlistPage({ params }: { params: Params }) {
           {wishlist.event && (
             <CardDescription>
               <Link
-                href={`/evento/${wishlist.event.slug}`}
+                href={`/evento/${wishlist.event.id}`}
                 className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
               >
                 <Users className="w-4 h-4" />
@@ -52,7 +52,7 @@ export default async function WishlistPage({ params }: { params: Params }) {
       <div className="mt-8 flex flex-col items-center gap-2">
         {wishlist.event ? (
           <Link
-            href={`/evento/${wishlist.event.slug}`}
+            href={`/evento/${wishlist.event.id}`}
             className="text-sm text-muted-foreground hover:text-foreground"
           >
             ← Ver otras listas del evento
