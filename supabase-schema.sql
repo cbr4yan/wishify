@@ -26,12 +26,14 @@ CREATE TABLE gifts (
   name TEXT NOT NULL,
   url TEXT,
   reserved BOOLEAN DEFAULT FALSE,
+  reserved_by TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Indexes
 CREATE INDEX idx_wishlists_event_id ON wishlists(event_id);
 CREATE INDEX idx_gifts_wishlist_id ON gifts(wishlist_id);
+CREATE INDEX idx_gifts_reserved_by ON gifts(reserved_by);
 
 -- Enable Row Level Security
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;

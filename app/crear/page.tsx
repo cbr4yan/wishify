@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, ArrowLeft, Copy, Check, Users, Link2, Lock } from "lucide-react";
 import { createWishlist, getEventById } from "@/lib/actions";
+import { useUserStore } from "@/lib/store";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -17,6 +18,7 @@ function CrearForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const eventId = searchParams.get("evento");
+  const setUserPin = useUserStore((state) => state.setUserPin);
 
   const [eventName, setEventName] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -62,30 +64,26 @@ function CrearForm() {
       return;
     }
 
+    if (!pin || pin.length < 4 || pin.length > 8) {
+      toast.error("El PIN debe tener entre 4 y 8 dígitos");
+      return;
+    }
+
     const validGifts = gifts.filter((g) => g.name.trim());
     if (validGifts.length === 0) {
       toast.error("Añade al menos un regalo");
       return;
     }
 
-    if (pin && (pin.length < 4 || pin.length > 8)) {
-      toast.error("El PIN debe tener entre 4 y 8 dígitos");
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      const response = await createWishlist(
-        name.trim(),
-        validGifts,
-        eventId || undefined,
-        pin || undefined
-      );
+      const response = await createWishlist(name.trim(), validGifts, pin, eventId || undefined);
 
       if (response.error) {
         toast.error(response.error);
       } else if (response.id && response.secretCode) {
+        setUserPin(pin);
         setResult({
           id: response.id,
           secretCode: response.secretCode,
@@ -132,7 +130,7 @@ function CrearForm() {
 
           <div className="p-4 bg-secondary rounded-lg">
             <Label className="text-sm text-muted-foreground">
-              Tu PIN secreto (guárdalo, solo se muestra una vez)
+              Tu PIN (guárdalo para editar y reservar regalos)
             </Label>
             <div className="flex items-center gap-2 mt-2">
               <span className="text-3xl font-mono font-bold tracking-widest">
@@ -146,9 +144,6 @@ function CrearForm() {
                 {copied === "pin" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              Lo necesitarás para editar o eliminar tu lista
-            </p>
           </div>
 
           <div className="flex gap-3">
@@ -217,7 +212,7 @@ function CrearForm() {
           <div>
             <Label htmlFor="pin" className="flex items-center gap-2">
               <Lock className="w-4 h-4" />
-              PIN secreto (opcional)
+              Tu PIN secreto
             </Label>
             <Input
               id="pin"
@@ -225,11 +220,14 @@ function CrearForm() {
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={8}
-              placeholder="4-8 dígitos (se genera uno si no lo pones)"
+              placeholder="4-8 dígitos"
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
               className="mt-2 font-mono"
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              Lo usarás para editar tu lista y reservar regalos de otros
+            </p>
           </div>
 
           <div>

@@ -3,29 +3,21 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-interface ReservationStore {
-  reservedGifts: string[];
-  addReservation: (giftId: string) => void;
-  removeReservation: (giftId: string) => void;
-  hasReserved: (giftId: string) => boolean;
+interface UserStore {
+  userPin: string | null;
+  setUserPin: (pin: string) => void;
+  clearUserPin: () => void;
 }
 
-export const useReservationStore = create<ReservationStore>()(
+export const useUserStore = create<UserStore>()(
   persist(
-    (set, get) => ({
-      reservedGifts: [],
-      addReservation: (giftId: string) =>
-        set((state) => ({
-          reservedGifts: [...state.reservedGifts, giftId],
-        })),
-      removeReservation: (giftId: string) =>
-        set((state) => ({
-          reservedGifts: state.reservedGifts.filter((id) => id !== giftId),
-        })),
-      hasReserved: (giftId: string) => get().reservedGifts.includes(giftId),
+    (set) => ({
+      userPin: null,
+      setUserPin: (pin: string) => set({ userPin: pin }),
+      clearUserPin: () => set({ userPin: null }),
     }),
     {
-      name: "wishify-reservations",
+      name: "wishify-user",
     }
   )
 );

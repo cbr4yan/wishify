@@ -8,11 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Copy, Check, Users, Lock } from "lucide-react";
 import { createEvent } from "@/lib/actions";
+import { useUserStore } from "@/lib/store";
 import { toast } from "sonner";
 import Link from "next/link";
 
 export default function CrearEventoPage() {
   const router = useRouter();
+  const setUserPin = useUserStore((state) => state.setUserPin);
   const [name, setName] = useState("");
   const [pin, setPin] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -27,7 +29,7 @@ export default function CrearEventoPage() {
       return;
     }
 
-    if (pin && (pin.length < 4 || pin.length > 8)) {
+    if (!pin || pin.length < 4 || pin.length > 8) {
       toast.error("El PIN debe tener entre 4 y 8 dígitos");
       return;
     }
@@ -35,11 +37,12 @@ export default function CrearEventoPage() {
     setIsLoading(true);
 
     try {
-      const response = await createEvent(name.trim(), pin || undefined);
+      const response = await createEvent(name.trim(), pin);
 
       if (response.error) {
         toast.error(response.error);
       } else if (response.id && response.secretCode) {
+        setUserPin(pin);
         setResult({ id: response.id, secretCode: response.secretCode });
         toast.success("¡Evento creado!");
       }
@@ -85,7 +88,7 @@ export default function CrearEventoPage() {
 
             <div className="p-4 bg-secondary rounded-lg">
               <Label className="text-sm text-muted-foreground">
-                PIN secreto del evento (solo se muestra una vez)
+                Tu PIN (guárdalo para administrar el evento)
               </Label>
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-3xl font-mono font-bold tracking-widest">
@@ -99,9 +102,6 @@ export default function CrearEventoPage() {
                   {copied === "pin" ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Lo necesitarás para eliminar el evento
-              </p>
             </div>
 
             <div className="flex gap-3">
@@ -153,7 +153,7 @@ export default function CrearEventoPage() {
             <div>
               <Label htmlFor="pin" className="flex items-center gap-2">
                 <Lock className="w-4 h-4" />
-                PIN secreto (opcional)
+                Tu PIN secreto
               </Label>
               <Input
                 id="pin"
@@ -161,11 +161,14 @@ export default function CrearEventoPage() {
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={8}
-                placeholder="4-8 dígitos (se genera uno si no lo pones)"
+                placeholder="4-8 dígitos"
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
                 className="mt-2 font-mono"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Lo usarás para administrar el evento y reservar regalos
+              </p>
             </div>
 
             <Button type="submit" className="w-full" size="lg" disabled={isLoading}>

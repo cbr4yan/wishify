@@ -3,11 +3,6 @@
 import { createId } from "@paralleldrive/cuid2";
 import { supabase } from "./supabase";
 
-// Generar código secreto de 6 dígitos
-function generateSecretCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
 // Validar PIN (4-8 dígitos)
 function isValidPin(pin: string): boolean {
   return /^\d{4,8}$/.test(pin);
@@ -15,23 +10,23 @@ function isValidPin(pin: string): boolean {
 
 // ==================== EVENTOS ====================
 
-// Crear un nuevo evento
-export async function createEvent(name: string, customPin?: string) {
+// Crear un nuevo evento (PIN obligatorio)
+export async function createEvent(name: string, pin: string) {
+  if (!isValidPin(pin)) {
+    return { error: "El PIN debe tener entre 4 y 8 dígitos" };
+  }
+
   const id = createId();
-  const secretCode = customPin && isValidPin(customPin) ? customPin : generateSecretCode();
 
   const { error } = await supabase
     .from("events")
-    .insert({ id, name, secret_code: secretCode });
+    .insert({ id, name, secret_code: pin });
 
   if (error) {
     return { error: "Error al crear el evento" };
   }
 
-  return {
-    id,
-    secretCode,
-  };
+  return { id, secretCode: pin };
 }
 
 // Obtener evento por ID con sus listas
@@ -98,21 +93,23 @@ export async function deleteEvent(id: string, code: string) {
 
 // ==================== WISHLISTS ====================
 
-// Tipo para regalo con URL opcional
 type GiftInput = {
   name: string;
   url?: string;
 };
 
-// Crear una nueva lista (opcionalmente dentro de un evento)
+// Crear una nueva lista (PIN obligatorio)
 export async function createWishlist(
   name: string,
   gifts: GiftInput[],
-  eventId?: string,
-  customPin?: string
+  pin: string,
+  eventId?: string
 ) {
+  if (!isValidPin(pin)) {
+    return { error: "El PIN debe tener entre 4 y 8 dígitos" };
+  }
+
   const id = createId();
-  const secretCode = customPin && isValidPin(customPin) ? customPin : generateSecretCode();
 
   // Verificar que el evento existe si se proporciona
   if (eventId) {
@@ -130,7 +127,7 @@ export async function createWishlist(
   const { error: wishlistError } = await supabase.from("wishlists").insert({
     id,
     name,
-    secret_code: secretCode,
+    secret_code: pin,
     event_id: eventId || null,
   });
 
@@ -148,9 +145,7 @@ export async function createWishlist(
     }));
 
   if (giftsToInsert.length > 0) {
-    const { error: giftsError } = await supabase
-      .from("gifts")
-      .insert(giftsToInsert);
+    const { error: giftsError } = await supabase.from("gifts").insert(giftsToInsert);
 
     if (giftsError) {
       return { error: "Error al crear los regalos" };
@@ -159,7 +154,7 @@ export async function createWishlist(
 
   return {
     id,
-    secretCode,
+    secretCode: pin,
     eventId: eventId || null,
   };
 }
@@ -200,21 +195,51 @@ export async function getWishlistById(id: string) {
   };
 }
 
-// Reservar un regalo
-export async function reserveGift(giftId: string) {
+// Reservar un regalo (guarda quién lo reservó con su PIN)
+export async function reserveGift(giftId: string, userPin: string) {
+  if (!isValidPin(userPin)) {
+    return { success: false, error: "PIN inválido" };
+  }
+
+  // Verificar que el regalo no esté ya reservado
+  const { data: gift } = await supabase
+    .from("gifts")
+    .select("reserved")
+    .eq("id", giftId)
+    .single();
+
+  if (gift?.reserved) {
+    return { success: false, error: "Este regalo ya está reservado" };
+  }
+
   const { error } = await supabase
     .from("gifts")
-    .update({ reserved: true })
+    .update({ reserved: true, reserved_by: userPin })
     .eq("id", giftId);
 
   return { success: !error };
 }
 
-// Desreservar un regalo
-export async function unreserveGift(giftId: string) {
+// Desreservar un regalo (solo si el PIN coincide)
+export async function unreserveGift(giftId: string, userPin: string) {
+  if (!isValidPin(userPin)) {
+    return { success: false, error: "PIN inválido" };
+  }
+
+  // Verificar que el usuario es quien reservó
+  const { data: gift } = await supabase
+    .from("gifts")
+    .select("reserved_by")
+    .eq("id", giftId)
+    .single();
+
+  if (gift?.reserved_by !== userPin) {
+    return { success: false, error: "No puedes cancelar esta reserva" };
+  }
+
   const { error } = await supabase
     .from("gifts")
-    .update({ reserved: false })
+    .update({ reserved: false, reserved_by: null })
     .eq("id", giftId);
 
   return { success: !error };
