@@ -105,10 +105,16 @@ export async function deleteEvent(id: string, code: string) {
 
 // ==================== WISHLISTS ====================
 
+// Tipo para regalo con URL opcional
+type GiftInput = {
+  name: string;
+  url?: string;
+};
+
 // Crear una nueva lista (opcionalmente dentro de un evento)
 export async function createWishlist(
   name: string,
-  gifts: string[],
+  gifts: GiftInput[],
   eventId?: string
 ) {
   const id = createId();
@@ -156,11 +162,12 @@ export async function createWishlist(
   }
 
   const giftsToInsert = gifts
-    .filter((g) => g.trim())
+    .filter((g) => g.name.trim())
     .map((g) => ({
       id: createId(),
       wishlist_id: id,
-      name: g.trim(),
+      name: g.name.trim(),
+      url: g.url?.trim() || null,
     }));
 
   if (giftsToInsert.length > 0) {
@@ -250,7 +257,7 @@ export async function updateWishlist(
   slug: string,
   code: string,
   name: string,
-  gifts: { id?: string; name: string }[]
+  gifts: GiftInput[]
 ) {
   const verification = await verifySecretCode(slug, code);
   if (!verification.valid) {
@@ -276,6 +283,7 @@ export async function updateWishlist(
       id: createId(),
       wishlist_id: wishlistId,
       name: g.name.trim(),
+      url: g.url?.trim() || null,
     }));
 
   if (giftsToInsert.length > 0) {

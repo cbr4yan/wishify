@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Gift as GiftIcon, Check } from "lucide-react";
+import { Gift as GiftIcon, Check, ExternalLink } from "lucide-react";
 import { reserveGift } from "@/lib/actions";
 import { useReservationStore } from "@/lib/store";
 import { toast } from "sonner";
@@ -53,33 +53,49 @@ export function GiftList({ gifts }: { gifts: Gift[] }) {
         return (
           <li
             key={gift.id}
-            className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+            className={`p-3 rounded-lg border transition-colors ${
               isReserved ? "bg-muted/50" : "bg-card"
             }`}
           >
-            <span
-              className={`flex-1 text-lg transition-all ${
-                isReserved ? "line-through text-muted-foreground" : ""
-              }`}
-            >
-              {gift.name}
-            </span>
+            <div className="flex items-center justify-between">
+              <div className="flex-1 min-w-0">
+                <span
+                  className={`text-lg block transition-all ${
+                    isReserved ? "line-through text-muted-foreground" : ""
+                  }`}
+                >
+                  {gift.name}
+                </span>
+                {gift.url && (
+                  <a
+                    href={gift.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-1"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Ver referencia
+                  </a>
+                )}
+              </div>
 
-            {isReserved ? (
-              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <Check className="w-4 h-4" />
-                {wasReservedByMe ? "Lo regalas tú" : "Reservado"}
-              </span>
-            ) : (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleReserve(gift.id)}
-                disabled={isPending}
-              >
-                Yo lo regalo
-              </Button>
-            )}
+              {isReserved ? (
+                <span className="text-sm text-muted-foreground flex items-center gap-1 shrink-0 ml-3">
+                  <Check className="w-4 h-4" />
+                  {wasReservedByMe ? "Lo regalas tú" : "Reservado"}
+                </span>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleReserve(gift.id)}
+                  disabled={isPending}
+                  className="shrink-0 ml-3"
+                >
+                  Yo lo regalo
+                </Button>
+              )}
+            </div>
           </li>
         );
       })}

@@ -33,6 +33,7 @@ export type Gift = {
   id: string;
   wishlist_id: string;
   name: string;
+  url: string | null;
   reserved: boolean;
   created_at: string;
 };

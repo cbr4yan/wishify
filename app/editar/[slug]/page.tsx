@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Link2 } from "lucide-react";
 import {
   getWishlistBySlug,
   verifySecretCode,
@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 
 type Params = Promise<{ slug: string }>;
+type GiftInput = { name: string; url: string };
 
 export default function EditarPage({ params }: { params: Params }) {
   const { slug } = use(params);
@@ -34,7 +35,7 @@ export default function EditarPage({ params }: { params: Params }) {
   const [isVerified, setIsVerified] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [name, setName] = useState("");
-  const [gifts, setGifts] = useState<{ id?: string; name: string }[]>([]);
+  const [gifts, setGifts] = useState<GiftInput[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -44,7 +45,12 @@ export default function EditarPage({ params }: { params: Params }) {
       getWishlistBySlug(slug).then((wishlist) => {
         if (wishlist) {
           setName(wishlist.name);
-          setGifts(wishlist.gifts.map((g: { id: string; name: string }) => ({ id: g.id, name: g.name })));
+          setGifts(
+            wishlist.gifts.map((g: { name: string; url: string | null }) => ({
+              name: g.name,
+              url: g.url || "",
+            }))
+          );
         }
       });
     }
@@ -73,7 +79,7 @@ export default function EditarPage({ params }: { params: Params }) {
     }
   };
 
-  const addGift = () => setGifts([...gifts, { name: "" }]);
+  const addGift = () => setGifts([...gifts, { name: "", url: "" }]);
 
   const removeGift = (index: number) => {
     if (gifts.length > 1) {
@@ -81,9 +87,9 @@ export default function EditarPage({ params }: { params: Params }) {
     }
   };
 
-  const updateGift = (index: number, value: string) => {
+  const updateGift = (index: number, field: keyof GiftInput, value: string) => {
     const newGifts = [...gifts];
-    newGifts[index] = { ...newGifts[index], name: value };
+    newGifts[index] = { ...newGifts[index], [field]: value };
     setGifts(newGifts);
   };
 
@@ -177,7 +183,7 @@ export default function EditarPage({ params }: { params: Params }) {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-6">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-lg">
         <CardHeader>
           <Link
             href={`/w/${slug}`}
@@ -202,34 +208,39 @@ export default function EditarPage({ params }: { params: Params }) {
 
             <div>
               <Label>Regalos</Label>
-              <div className="space-y-3 mt-2">
+              <div className="space-y-4 mt-2">
                 {gifts.map((gift, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      placeholder={`Regalo ${index + 1}`}
-                      value={gift.name}
-                      onChange={(e) => updateGift(index, e.target.value)}
-                    />
-                    {gifts.length > 1 && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeGift(index)}
-                      >
-                        <Trash2 className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                    )}
+                  <div key={index} className="space-y-2 p-3 border rounded-lg">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder={`Regalo ${index + 1}`}
+                        value={gift.name}
+                        onChange={(e) => updateGift(index, "name", e.target.value)}
+                      />
+                      {gifts.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeGift(index)}
+                        >
+                          <Trash2 className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Link2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <Input
+                        placeholder="Link de referencia (opcional)"
+                        value={gift.url}
+                        onChange={(e) => updateGift(index, "url", e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addGift}
-                className="mt-3"
-              >
+              <Button type="button" variant="outline" size="sm" onClick={addGift} className="mt-3">
                 <Plus className="w-4 h-4 mr-1" />
                 Añadir regalo
               </Button>
@@ -258,11 +269,7 @@ export default function EditarPage({ params }: { params: Params }) {
                     >
                       Cancelar
                     </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleDelete}
-                      disabled={isDeleting}
-                    >
+                    <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
                       {isDeleting ? "Eliminando..." : "Eliminar"}
                     </Button>
                   </DialogFooter>
@@ -279,4 +286,3 @@ export default function EditarPage({ params }: { params: Params }) {
     </main>
   );
 }
-

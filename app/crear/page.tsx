@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, ArrowLeft, Copy, Check, Users } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Copy, Check, Users, Link2 } from "lucide-react";
 import { createWishlist, getEventById } from "@/lib/actions";
 import { toast } from "sonner";
 import Link from "next/link";
+
+type GiftInput = { name: string; url: string };
 
 function CrearForm() {
   const router = useRouter();
@@ -18,7 +20,7 @@ function CrearForm() {
 
   const [eventName, setEventName] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [gifts, setGifts] = useState([""]);
+  const [gifts, setGifts] = useState<GiftInput[]>([{ name: "", url: "" }]);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<{
     slug: string;
@@ -37,7 +39,7 @@ function CrearForm() {
     }
   }, [eventId]);
 
-  const addGift = () => setGifts([...gifts, ""]);
+  const addGift = () => setGifts([...gifts, { name: "", url: "" }]);
 
   const removeGift = (index: number) => {
     if (gifts.length > 1) {
@@ -45,9 +47,9 @@ function CrearForm() {
     }
   };
 
-  const updateGift = (index: number, value: string) => {
+  const updateGift = (index: number, field: keyof GiftInput, value: string) => {
     const newGifts = [...gifts];
-    newGifts[index] = value;
+    newGifts[index] = { ...newGifts[index], [field]: value };
     setGifts(newGifts);
   };
 
@@ -59,7 +61,7 @@ function CrearForm() {
       return;
     }
 
-    const validGifts = gifts.filter((g) => g.trim());
+    const validGifts = gifts.filter((g) => g.name.trim());
     if (validGifts.length === 0) {
       toast.error("Añade al menos un regalo");
       return;
@@ -171,7 +173,7 @@ function CrearForm() {
   const backUrl = eventId ? `/evento/${eventId}` : "/";
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-lg">
       <CardHeader>
         <Link
           href={backUrl}
@@ -203,24 +205,35 @@ function CrearForm() {
 
           <div>
             <Label>Regalos que quieres</Label>
-            <div className="space-y-3 mt-2">
+            <div className="space-y-4 mt-2">
               {gifts.map((gift, index) => (
-                <div key={index} className="flex gap-2">
-                  <Input
-                    placeholder={`Regalo ${index + 1}`}
-                    value={gift}
-                    onChange={(e) => updateGift(index, e.target.value)}
-                  />
-                  {gifts.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeGift(index)}
-                    >
-                      <Trash2 className="w-4 h-4 text-muted-foreground" />
-                    </Button>
-                  )}
+                <div key={index} className="space-y-2 p-3 border rounded-lg">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder={`Regalo ${index + 1}`}
+                      value={gift.name}
+                      onChange={(e) => updateGift(index, "name", e.target.value)}
+                    />
+                    {gifts.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeGift(index)}
+                      >
+                        <Trash2 className="w-4 h-4 text-muted-foreground" />
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <Input
+                      placeholder="Link de referencia (opcional)"
+                      value={gift.url}
+                      onChange={(e) => updateGift(index, "url", e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -244,7 +257,7 @@ export default function CrearPage() {
     <main className="min-h-screen flex flex-col items-center justify-center p-6">
       <Suspense
         fallback={
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-lg">
             <CardHeader>
               <CardTitle className="text-2xl">Crear mi lista</CardTitle>
             </CardHeader>
