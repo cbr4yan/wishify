@@ -127,11 +127,56 @@ export async function deleteEvent(id: string, code: string) {
   return { success: true };
 }
 
+// ==================== IMAGES ====================
+
+// Subir imagen de regalo
+export async function uploadGiftImage(formData: FormData) {
+  const file = formData.get("file") as File;
+  if (!file) {
+    return { error: "No se proporcionó archivo" };
+  }
+
+  // Validar tipo de archivo
+  if (!file.type.startsWith("image/")) {
+    return { error: "El archivo debe ser una imagen" };
+  }
+
+  // Validar tamaño (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    return { error: "La imagen no puede superar 5MB" };
+  }
+
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${createId()}.${fileExt}`;
+
+  const { error } = await supabase.storage
+    .from("gift-images")
+    .upload(fileName, file);
+
+  if (error) {
+    return { error: "Error al subir la imagen" };
+  }
+
+  const { data } = supabase.storage.from("gift-images").getPublicUrl(fileName);
+
+  return { url: data.publicUrl };
+}
+
+// Eliminar imagen de regalo
+export async function deleteGiftImage(imageUrl: string) {
+  const fileName = imageUrl.split("/").pop();
+  if (!fileName) return { error: "URL inválida" };
+
+  await supabase.storage.from("gift-images").remove([fileName]);
+  return { success: true };
+}
+
 // ==================== WISHLISTS ====================
 
 type GiftInput = {
   name: string;
   url?: string;
+  imageUrl?: string;
 };
 
 // Crear una nueva lista (PIN obligatorio)
@@ -178,6 +223,7 @@ export async function createWishlist(
       wishlist_id: id,
       name: g.name.trim(),
       url: g.url?.trim() || null,
+      image_url: g.imageUrl || null,
     }));
 
   if (giftsToInsert.length > 0) {
@@ -334,6 +380,7 @@ export async function updateWishlist(
       wishlist_id: wishlistId,
       name: g.name.trim(),
       url: g.url?.trim() || null,
+      image_url: g.imageUrl || null,
     }));
 
   if (giftsToInsert.length > 0) {

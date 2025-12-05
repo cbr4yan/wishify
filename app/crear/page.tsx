@@ -1,18 +1,19 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, ArrowLeft, Copy, Check, Users, Link2, Lock } from "lucide-react";
-import { createWishlist, getEventById } from "@/lib/actions";
+import { Plus, Trash2, ArrowLeft, Copy, Check, Users, Link2, Lock, ImagePlus, X } from "lucide-react";
+import { createWishlist, getEventById, uploadGiftImage } from "@/lib/actions";
 import { useUserStore } from "@/lib/store";
 import { toast } from "sonner";
 import Link from "next/link";
+import Image from "next/image";
 
-type GiftInput = { name: string; url: string };
+type GiftInput = { name: string; url: string; imageUrl: string };
 
 function CrearForm() {
   const router = useRouter();
@@ -23,14 +24,17 @@ function CrearForm() {
   const [eventName, setEventName] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [pin, setPin] = useState("");
-  const [gifts, setGifts] = useState<GiftInput[]>([{ name: "", url: "" }]);
+  const [gifts, setGifts] = useState<GiftInput[]>([{ name: "", url: "", imageUrl: "" }]);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [result, setResult] = useState<{
     id: string;
     secretCode: string;
     eventId: string | null;
   } | null>(null);
   const [copied, setCopied] = useState<"link" | "pin" | null>(null);
+
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     if (eventId) {
@@ -42,7 +46,7 @@ function CrearForm() {
     }
   }, [eventId]);
 
-  const addGift = () => setGifts([...gifts, { name: "", url: "" }]);
+  const addGift = () => setGifts([...gifts, { name: "", url: "", imageUrl: "" }]);
 
   const removeGift = (index: number) => {
     if (gifts.length > 1) {
@@ -54,6 +58,38 @@ function CrearForm() {
     const newGifts = [...gifts];
     newGifts[index] = { ...newGifts[index], [field]: value };
     setGifts(newGifts);
+  };
+
+  const handleImageUpload = async (index: number, file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Solo se permiten imágenes");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen no puede superar 5MB");
+      return;
+    }
+
+    setUploadingIndex(index);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const result = await uploadGiftImage(formData);
+
+    if (result.error) {
+      toast.error(result.error);
+    } else if (result.url) {
+      updateGift(index, "imageUrl", result.url);
+      toast.success("Imagen subida");
+    }
+
+    setUploadingIndex(null);
+  };
+
+  const removeImage = (index: number) => {
+    updateGift(index, "imageUrl", "");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -252,6 +288,7 @@ function CrearForm() {
                       </Button>
                     )}
                   </div>
+
                   <div className="flex items-center gap-2">
                     <Link2 className="w-4 h-4 text-muted-foreground shrink-0" />
                     <Input
@@ -260,6 +297,56 @@ function CrearForm() {
                       onChange={(e) => updateGift(index, "url", e.target.value)}
                       className="text-sm"
                     />
+                  </div>
+
+                  {/* Imagen */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      ref={(el) => {
+                        fileInputRefs.current[index] = el;
+                      }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(index, file);
+                      }}
+                      className="hidden"
+                    />
+
+                    {gift.imageUrl ? (
+                      <div className="relative w-full">
+                        <div className="relative h-32 w-full rounded-lg overflow-hidden bg-muted">
+                          <Image
+                            src={gift.imageUrl}
+                            alt={gift.name || "Regalo"}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="absolute top-2 right-2 h-6 w-6"
+                          onClick={() => removeImage(index)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        disabled={uploadingIndex === index}
+                        onClick={() => fileInputRefs.current[index]?.click()}
+                      >
+                        <ImagePlus className="w-4 h-4 mr-2" />
+                        {uploadingIndex === index ? "Subiendo..." : "Añadir foto (opcional)"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}

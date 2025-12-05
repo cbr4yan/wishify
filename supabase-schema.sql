@@ -25,6 +25,7 @@ CREATE TABLE gifts (
   wishlist_id TEXT REFERENCES wishlists(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
   url TEXT,
+  image_url TEXT,
   reserved BOOLEAN DEFAULT FALSE,
   reserved_by TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

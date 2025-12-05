@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,18 +15,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Trash2, ArrowLeft, Link2 } from "lucide-react";
+import { Plus, Trash2, ArrowLeft, Link2, ImagePlus, X } from "lucide-react";
 import {
   getWishlistById,
   verifySecretCode,
   updateWishlist,
   deleteWishlist,
+  uploadGiftImage,
 } from "@/lib/actions";
 import { toast } from "sonner";
 import Link from "next/link";
+import Image from "next/image";
 
 type Params = Promise<{ id: string }>;
-type GiftInput = { name: string; url: string };
+type GiftInput = { name: string; url: string; imageUrl: string };
 
 export default function EditarPage({ params }: { params: Params }) {
   const { id } = use(params);
@@ -39,6 +41,9 @@ export default function EditarPage({ params }: { params: Params }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     if (isVerified) {
@@ -46,10 +51,13 @@ export default function EditarPage({ params }: { params: Params }) {
         if (wishlist) {
           setName(wishlist.name);
           setGifts(
-            wishlist.gifts.map((g: { name: string; url: string | null }) => ({
-              name: g.name,
-              url: g.url || "",
-            }))
+            wishlist.gifts.map(
+              (g: { name: string; url: string | null; image_url: string | null }) => ({
+                name: g.name,
+                url: g.url || "",
+                imageUrl: g.image_url || "",
+              })
+            )
           );
         }
       });
@@ -79,7 +87,7 @@ export default function EditarPage({ params }: { params: Params }) {
     }
   };
 
-  const addGift = () => setGifts([...gifts, { name: "", url: "" }]);
+  const addGift = () => setGifts([...gifts, { name: "", url: "", imageUrl: "" }]);
 
   const removeGift = (index: number) => {
     if (gifts.length > 1) {
@@ -91,6 +99,38 @@ export default function EditarPage({ params }: { params: Params }) {
     const newGifts = [...gifts];
     newGifts[index] = { ...newGifts[index], [field]: value };
     setGifts(newGifts);
+  };
+
+  const handleImageUpload = async (index: number, file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Solo se permiten imágenes");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen no puede superar 5MB");
+      return;
+    }
+
+    setUploadingIndex(index);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const result = await uploadGiftImage(formData);
+
+    if (result.error) {
+      toast.error(result.error);
+    } else if (result.url) {
+      updateGift(index, "imageUrl", result.url);
+      toast.success("Imagen subida");
+    }
+
+    setUploadingIndex(null);
+  };
+
+  const removeImage = (index: number) => {
+    updateGift(index, "imageUrl", "");
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -237,6 +277,56 @@ export default function EditarPage({ params }: { params: Params }) {
                         className="text-sm"
                       />
                     </div>
+
+                    {/* Imagen */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={(el) => {
+                          fileInputRefs.current[index] = el;
+                        }}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleImageUpload(index, file);
+                        }}
+                        className="hidden"
+                      />
+
+                      {gift.imageUrl ? (
+                        <div className="relative w-full">
+                          <div className="relative h-32 w-full rounded-lg overflow-hidden bg-muted">
+                            <Image
+                              src={gift.imageUrl}
+                              alt={gift.name || "Regalo"}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2 h-6 w-6"
+                            onClick={() => removeImage(index)}
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          disabled={uploadingIndex === index}
+                          onClick={() => fileInputRefs.current[index]?.click()}
+                        >
+                          <ImagePlus className="w-4 h-4 mr-2" />
+                          {uploadingIndex === index ? "Subiendo..." : "Añadir foto (opcional)"}
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -286,4 +376,3 @@ export default function EditarPage({ params }: { params: Params }) {
     </main>
   );
 }
-
