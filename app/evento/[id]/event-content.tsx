@@ -25,6 +25,7 @@ type EventData = {
 export function EventContent({ event }: { event: EventData }) {
   const [mounted, setMounted] = useState(false);
   const [pinInput, setPinInput] = useState("");
+  const [isCreatingPin, setIsCreatingPin] = useState(false);
   const { userPin, setUserPin } = useUserStore();
 
   useEffect(() => {
@@ -38,7 +39,7 @@ export function EventContent({ event }: { event: EventData }) {
       return;
     }
     setUserPin(pinInput);
-    toast.success("¡Identificado!");
+    toast.success(isCreatingPin ? "¡PIN creado!" : "¡Identificado!");
   };
 
   // Mientras carga, mostrar loading
@@ -58,7 +59,7 @@ export function EventContent({ event }: { event: EventData }) {
     );
   }
 
-  // Si no tiene PIN, pedir que se identifique
+  // Si no tiene PIN, pedir que se identifique o cree uno
   if (!userPin) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-6">
@@ -72,18 +73,27 @@ export function EventContent({ event }: { event: EventData }) {
               Volver
             </Link>
             <div className="flex items-center gap-2">
-              <Lock className="w-6 h-6 text-primary" />
-              <CardTitle className="text-2xl">Identifícate</CardTitle>
+              {isCreatingPin ? (
+                <Plus className="w-6 h-6 text-primary" />
+              ) : (
+                <Lock className="w-6 h-6 text-primary" />
+              )}
+              <CardTitle className="text-2xl">
+                {isCreatingPin ? "Crea tu PIN" : "Identifícate"}
+              </CardTitle>
             </div>
             <CardDescription>
-              Ingresa tu PIN para ver el evento <strong>{event.name}</strong> y poder reservar
-              regalos.
+              {isCreatingPin
+                ? "Elige un PIN de 4-8 dígitos. Lo usarás para reservar regalos y poder deshacer tus reservas."
+                : `Ingresa tu PIN para ver el evento ${event.name} y poder reservar regalos.`}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handlePinSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="pin">Tu PIN (4-8 dígitos)</Label>
+                <Label htmlFor="pin">
+                  {isCreatingPin ? "Tu nuevo PIN (4-8 dígitos)" : "Tu PIN (4-8 dígitos)"}
+                </Label>
                 <Input
                   id="pin"
                   type="text"
@@ -96,14 +106,29 @@ export function EventContent({ event }: { event: EventData }) {
                   className="mt-2 text-center text-2xl font-mono tracking-widest"
                   autoFocus
                 />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Es el mismo PIN que usas para crear listas
-                </p>
               </div>
               <Button type="submit" className="w-full" size="lg">
-                Entrar
+                {isCreatingPin ? "Crear PIN y entrar" : "Entrar"}
               </Button>
             </form>
+
+            <div className="mt-4 pt-4 border-t text-center">
+              {isCreatingPin ? (
+                <button
+                  onClick={() => setIsCreatingPin(false)}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Ya tengo un PIN
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsCreatingPin(true)}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  No tengo PIN, crear uno nuevo
+                </button>
+              )}
+            </div>
           </CardContent>
         </Card>
       </main>
@@ -173,4 +198,3 @@ export function EventContent({ event }: { event: EventData }) {
     </main>
   );
 }
-
