@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Gift as GiftIcon, Check } from "lucide-react";
 import { reserveGift } from "@/lib/actions";
@@ -10,30 +10,29 @@ import type { Gift } from "@/lib/supabase";
 
 export function GiftList({ gifts }: { gifts: Gift[] }) {
   const [reservedIds, setReservedIds] = useState<string[]>([]);
-  const [loadingId, setLoadingId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const { addReservation, reservedGifts } = useReservationStore();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const handleReserve = async (giftId: string) => {
-    setLoadingId(giftId);
-    try {
+  const handleReserve = (giftId: string) => {
+    // Optimistic update: marcar inmediatamente como reservado
+    setReservedIds((prev) => [...prev, giftId]);
+    addReservation(giftId);
+    toast.success("¡Reservado! Nadie más verá que fuiste tú.");
+
+    // Llamar al servidor en background
+    startTransition(async () => {
       const result = await reserveGift(giftId);
-      if (result.success) {
-        setReservedIds([...reservedIds, giftId]);
-        addReservation(giftId);
-        toast.success("¡Reservado! Nadie más verá que fuiste tú.");
-      } else {
-        toast.error("Error al reservar");
+      if (!result.success) {
+        // Revertir si falla
+        setReservedIds((prev) => prev.filter((id) => id !== giftId));
+        toast.error("Error al reservar. Intenta de nuevo.");
       }
-    } catch {
-      toast.error("Error al reservar");
-    } finally {
-      setLoadingId(null);
-    }
+    });
   };
 
   if (gifts.length === 0) {
@@ -50,17 +49,16 @@ export function GiftList({ gifts }: { gifts: Gift[] }) {
       {gifts.map((gift) => {
         const isReserved = gift.reserved || reservedIds.includes(gift.id);
         const wasReservedByMe = mounted && reservedGifts.includes(gift.id);
-        const isLoading = loadingId === gift.id;
 
         return (
           <li
             key={gift.id}
-            className={`flex items-center justify-between p-3 rounded-lg border ${
+            className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
               isReserved ? "bg-muted/50" : "bg-card"
             }`}
           >
             <span
-              className={`flex-1 text-lg ${
+              className={`flex-1 text-lg transition-all ${
                 isReserved ? "line-through text-muted-foreground" : ""
               }`}
             >
@@ -77,9 +75,9 @@ export function GiftList({ gifts }: { gifts: Gift[] }) {
                 size="sm"
                 variant="outline"
                 onClick={() => handleReserve(gift.id)}
-                disabled={isLoading}
+                disabled={isPending}
               >
-                {isLoading ? "..." : "Yo lo regalo"}
+                Yo lo regalo
               </Button>
             )}
           </li>
