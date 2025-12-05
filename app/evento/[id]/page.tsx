@@ -1,9 +1,9 @@
-import { notFound } from "next/navigation";
-import { getEventById } from "@/lib/actions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Gift, Plus, Settings } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getEventById } from "@/lib/actions";
+import { ArrowLeft, Gift, Plus, Settings, Users } from "lucide-react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 type Params = Promise<{ id: string }>;
 
@@ -19,16 +19,23 @@ export default async function EventoPage({ params }: { params: Params }) {
     <main className="min-h-screen flex flex-col items-center justify-center p-6">
       <Card className="w-full max-w-lg">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Users className="w-6 h-6 text-primary" />
-              <span className="text-sm text-muted-foreground">Evento</span>
-            </div>
+          <div className="flex items-center justify-between mb-2">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Volver
+            </Link>
             <Link href={`/evento/${id}/admin`}>
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <Settings className="w-4 h-4" />
               </Button>
             </Link>
+          </div>
+          <div className="flex items-center gap-2">
+            <Users className="w-6 h-6 text-primary" />
+            <span className="text-sm text-muted-foreground">Evento</span>
           </div>
           <CardTitle className="text-3xl">{event.name}</CardTitle>
         </CardHeader>
@@ -47,9 +54,13 @@ export default async function EventoPage({ params }: { params: Params }) {
                     <div className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3">
                         <Gift className="w-5 h-5 text-primary" />
-                        <span className="text-lg font-medium">{wishlist.name}</span>
+                        <span className="text-lg font-medium">
+                          {wishlist.name}
+                        </span>
                       </div>
-                      <span className="text-sm text-muted-foreground">Ver lista →</span>
+                      <span className="text-sm text-muted-foreground">
+                        Ver lista →
+                      </span>
                     </div>
                   </Link>
                 </li>
@@ -67,10 +78,6 @@ export default async function EventoPage({ params }: { params: Params }) {
           </div>
         </CardContent>
       </Card>
-
-      <Link href="/" className="mt-8 text-sm text-muted-foreground hover:text-foreground">
-        Crear mi propio evento
-      </Link>
     </main>
   );
 }
