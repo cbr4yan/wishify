@@ -174,6 +174,7 @@ export async function deleteGiftImage(imageUrl: string) {
 // ==================== WISHLISTS ====================
 
 type GiftInput = {
+  id?: string; // Si tiene id, es un regalo existente
   name: string;
   url?: string;
   imageUrl?: string;
@@ -371,11 +372,42 @@ export async function updateWishlist(
     return { error: "Error al actualizar" };
   }
 
-  await supabase.from("gifts").delete().eq("wishlist_id", wishlistId);
+  const validGifts = gifts.filter((g) => g.name.trim());
 
-  const giftsToInsert = gifts
-    .filter((g) => g.name.trim())
-    .map((g) => ({
+  // Separar regalos existentes y nuevos
+  const existingGifts = validGifts.filter((g) => g.id);
+  const newGifts = validGifts.filter((g) => !g.id);
+
+  // Obtener IDs de regalos que se mantienen
+  const keepIds = existingGifts.map((g) => g.id!);
+
+  // Eliminar solo los regalos que ya no están en la lista
+  if (keepIds.length > 0) {
+    await supabase
+      .from("gifts")
+      .delete()
+      .eq("wishlist_id", wishlistId)
+      .not("id", "in", `(${keepIds.join(",")})`);
+  } else {
+    // Si no hay regalos a mantener, borrar todos
+    await supabase.from("gifts").delete().eq("wishlist_id", wishlistId);
+  }
+
+  // Actualizar regalos existentes (solo nombre, url, imagen - NO tocar reserved/reserved_by)
+  for (const gift of existingGifts) {
+    await supabase
+      .from("gifts")
+      .update({
+        name: gift.name.trim(),
+        url: gift.url?.trim() || null,
+        image_url: gift.imageUrl || null,
+      })
+      .eq("id", gift.id!);
+  }
+
+  // Insertar nuevos regalos
+  if (newGifts.length > 0) {
+    const giftsToInsert = newGifts.map((g) => ({
       id: createId(),
       wishlist_id: wishlistId,
       name: g.name.trim(),
@@ -383,7 +415,6 @@ export async function updateWishlist(
       image_url: g.imageUrl || null,
     }));
 
-  if (giftsToInsert.length > 0) {
     await supabase.from("gifts").insert(giftsToInsert);
   }
 

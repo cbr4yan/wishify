@@ -28,7 +28,7 @@ import { use, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 type Params = Promise<{ id: string }>;
-type GiftInput = { name: string; url: string; imageUrl: string };
+type GiftInput = { id?: string; name: string; url: string; imageUrl: string };
 
 export default function EditarPage({ params }: { params: Params }) {
   const { id } = use(params);
@@ -53,10 +53,12 @@ export default function EditarPage({ params }: { params: Params }) {
           setGifts(
             wishlist.gifts.map(
               (g: {
+                id: string;
                 name: string;
                 url: string | null;
                 image_url: string | null;
               }) => ({
+                id: g.id, // Mantener el ID para actualizar sin perder reservas
                 name: g.name,
                 url: g.url || "",
                 imageUrl: g.image_url || "",
